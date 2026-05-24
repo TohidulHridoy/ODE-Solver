@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, ReactNode, ChangeEvent } from 'react';
 import EquationInput from './components/EquationInput';
 import MethodSelector from './components/MethodSelector';
 import SolutionChart from './components/SolutionChart';
@@ -10,6 +10,7 @@ import MethodTheoryModal from './components/MethodTheory';
 import ODESolverAPI from './api/client';
 import html2canvas from 'html2canvas';
 
+// Type definitions
 interface Solution {
   method: string;
   x_values: number[];
@@ -24,23 +25,38 @@ interface ExactSolution {
   y_values: number[];
 }
 
-export default function App() {
-  const [odeExpression, setOdeExpression] = useState('-2*y');
-  const [initialX, setInitialX] = useState(0);
-  const [initialY, setInitialY] = useState(1);
-  const [xEnd, setXEnd] = useState(5);
-  const [stepSize, setStepSize] = useState(0.1);
+interface Parameter {
+  label: string;
+  value: number;
+  setter: (value: number) => void;
+  min: number;
+  max: number;
+  step: number;
+}
+
+interface Tab {
+  key: 'solution' | 'error' | 'convergence' | 'stability';
+  label: string;
+}
+
+// API singleton instance
+const api = new ODESolverAPI();
+
+export default function App(): ReactNode {
+  const [odeExpression, setOdeExpression] = useState<string>('-2*y');
+  const [initialX, setInitialX] = useState<number>(0);
+  const [initialY, setInitialY] = useState<number>(1);
+  const [xEnd, setXEnd] = useState<number>(5);
+  const [stepSize, setStepSize] = useState<number>(0.1);
   const [selectedMethods, setSelectedMethods] = useState<string[]>(['rk4']);
   const [solutions, setSolutions] = useState<Solution[]>([]);
   const [exactSolution, setExactSolution] = useState<ExactSolution | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'solution' | 'error' | 'convergence' | 'stability'>('solution');
   const [theoryMethod, setTheoryMethod] = useState<string | null>(null);
 
-  const api = new ODESolverAPI();
-
-  const solveODE = async () => {
+  const solveODE = async (): Promise<void> => {
     if (!odeExpression.trim()) { setError('Please enter an ODE expression'); return; }
     if (selectedMethods.length === 0) { setError('Please select at least one method'); return; }
     setLoading(true);
@@ -62,7 +78,7 @@ export default function App() {
     }
   };
 
-  const handleLoadPreset = async (caseStudyId: string, methods: string[]) => {
+  const handleLoadPreset = async (caseStudyId: string, methods: string[]): Promise<void> => {
     setLoading(true);
     setError(null);
     setSolutions([]);
@@ -83,7 +99,7 @@ export default function App() {
     }
   };
 
-  const downloadChart = async () => {
+  const downloadChart = async (): Promise<void> => {
     const chartElement = document.querySelector('.recharts-wrapper');
     if (!chartElement) { alert('No chart found'); return; }
     try {
@@ -95,7 +111,7 @@ export default function App() {
     } catch { alert('Failed to download chart'); }
   };
 
-  const downloadData = () => {
+  const downloadData = (): void => {
     if (solutions.length === 0) { alert('No data to download'); return; }
     let csv = 'x,' + solutions.map(s => s.method).join(',') + '\n';
     const maxLength = Math.max(...solutions.map(s => s.x_values.length));
@@ -116,7 +132,7 @@ export default function App() {
     a.click();
     window.URL.revokeObjectURL(url);
   };
-  const downloadPDF = async () => {
+  const downloadPDF = async (): Promise<void> => {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF();
 
@@ -259,12 +275,12 @@ export default function App() {
   doc.save(`ODE_Report_${odeExpression.replace(/[^a-z0-9]/gi, '_')}.pdf`);
 };
 
-  const tabs = [
+  const tabs: Tab[] = [
     { key: 'solution', label: 'Solution' },
     { key: 'error', label: 'Error Analysis' },
     { key: 'convergence', label: 'Convergence' },
     { key: 'stability', label: 'Stability' },
-  ] as const;
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -304,10 +320,10 @@ export default function App() {
               />
               {/* Theory buttons */}
               <div className="mt-3 flex flex-wrap gap-2">
-                {['euler', 'heun', 'rk4', 'rk45'].map(m => (
+                {(['euler', 'heun', 'rk4', 'rk45'] as const).map((m: string) => (
                   <button
                     key={m}
-                    onClick={() => setTheoryMethod(m)}
+                    onClick={(): void => setTheoryMethod(m)}
                     className="text-xs px-2 py-1 bg-blue-50 text-blue-600 border border-blue-200 rounded hover:bg-blue-100 transition"
                   >
                     {m.toUpperCase()} Theory
@@ -318,19 +334,19 @@ export default function App() {
 
             <div className="bg-white border border-gray-300 rounded-lg p-6 shadow-md space-y-4">
               <h3 className="font-semibold text-gray-800">Initial Conditions</h3>
-              {[
+              {([
                 { label: 'x₀', value: initialX, setter: setInitialX, min: -10, max: 10, step: 0.1 },
                 { label: 'y₀', value: initialY, setter: setInitialY, min: -10, max: 10, step: 0.1 },
                 { label: 'x_end', value: xEnd, setter: setXEnd, min: 1, max: 50, step: 0.5 },
                 { label: 'Step size h', value: stepSize, setter: setStepSize, min: 0.001, max: 0.5, step: 0.001 },
-              ].map(({ label, value, setter, min, max, step }) => (
+              ] as Parameter[]).map(({ label, value, setter, min, max, step }: Parameter) => (
                 <div key={label}>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {label} = {value.toFixed(label === 'Step size h' ? 3 : 2)}
                   </label>
                   <input
                     type="range" min={min} max={max} step={step} value={value}
-                    onChange={(e) => setter(parseFloat(e.target.value))}
+                    onChange={(e: ChangeEvent<HTMLInputElement>): void => setter(parseFloat(e.target.value))}
                     className="w-full"
                   />
                 </div>
@@ -380,10 +396,10 @@ export default function App() {
             {/* Tabs — Stability সবসময় দেখাবে, বাকিগুলো solution থাকলে */}
             <div className="space-y-4">
               <div className="flex gap-2 border-b border-gray-300 flex-wrap">
-                {tabs.map(tab => (
+                {tabs.map((tab: Tab) => (
                   <button
                     key={tab.key}
-                    onClick={() => setActiveTab(tab.key)}
+                    onClick={(): void => setActiveTab(tab.key)}
                     className={`px-4 py-2 font-medium transition ${
                       activeTab === tab.key
                         ? 'text-blue-600 border-b-2 border-blue-600'
@@ -400,7 +416,7 @@ export default function App() {
                     <div className="p-6">
                         <SolutionChart
                         solutions={solutions}
-                        exactSolution={exactSolution}
+                        exactSolution={exactSolution || undefined}
                         />
                     </div>
                     )}

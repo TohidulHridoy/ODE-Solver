@@ -1,5 +1,3 @@
-import React, { useState } from 'react';
-
 interface MethodInfo {
   name: string;
   formula: string;
