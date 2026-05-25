@@ -132,50 +132,105 @@ export default function App(): ReactNode {
     a.click();
     window.URL.revokeObjectURL(url);
   };
-  const downloadPDF = async (): Promise<void> => {
+  const downloadPDF = async () => {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF();
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
 
-  // Header
+  // ── PAGE 1: Cover ──────────────────────────────────
   doc.setFillColor(37, 99, 235);
-  doc.rect(0, 0, 210, 30, 'F');
+  doc.rect(0, 0, pageW, 60, 'F');
+
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
-  doc.text('ODE Solver Report', 15, 20);
+  doc.setFontSize(26);
+  doc.setFont('helvetica', 'bold');
+  doc.text('ODE Solver Report', 15, 30);
 
-  // ODE Info
-  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Numerical ODE Solver for Engineering Problems', 15, 42);
+  doc.text(`Generated: ${new Date().toLocaleString()}`, 15, 52);
+
+  // ODE Info Box
+  doc.setFillColor(241, 245, 249);
+  doc.roundedRect(12, 68, pageW - 24, 55, 3, 3, 'F');
+  doc.setDrawColor(37, 99, 235);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(12, 68, pageW - 24, 55, 3, 3, 'S');
+
+  doc.setTextColor(37, 99, 235);
   doc.setFontSize(13);
-  doc.text('ODE Information', 15, 42);
+  doc.setFont('helvetica', 'bold');
+  doc.text('ODE Information', 18, 80);
+
+  doc.setTextColor(30, 30, 30);
   doc.setFontSize(10);
-  doc.setTextColor(80, 80, 80);
-  doc.text(`Expression: dy/dx = ${odeExpression}`, 15, 52);
-  doc.text(`Initial: x₀ = ${initialX},  y₀ = ${initialY}`, 15, 60);
-  doc.text(`x range: [${initialX}, ${xEnd}]   Step size h = ${stepSize}`, 15, 68);
-  doc.text(`Methods: ${solutions.map(s => s.method).join(', ')}`, 15, 76);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Expression:   dy/dx = ${odeExpression}`, 18, 92);
+  doc.text(`Initial x (x0):  ${initialX}`, 18, 102);
+  doc.text(`Initial y (y0):  ${initialY}`, 18, 112);
+  doc.text(`x range:      [${initialX},  ${xEnd}]`, 110, 92);
+  doc.text(`Step size h:  ${stepSize}`, 110, 102);
+  doc.text(`Methods:      ${solutions.map(s => s.method).join(', ')}`, 110, 112);
 
-  // Divider
-  doc.setDrawColor(200, 200, 200);
-  doc.line(15, 82, 195, 82);
+  // Method descriptions
+  const methodDesc: Record<string, string> = {
+    Euler:  'Order 1 — Simple, limited stability',
+    Heun:   'Order 2 — Predictor-corrector',
+    RK4:    'Order 4 — Industry standard',
+    RK45:   'Order 4 — Adaptive step control',
+  };
 
-  // Results table
-  doc.setTextColor(0, 0, 0);
+  let y = 140;
+  doc.setTextColor(37, 99, 235);
   doc.setFontSize(13);
-  doc.text('Results Summary', 15, 92);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Methods Used', 15, y); y += 8;
+
+  const methodDotColors: Record<string, [number,number,number]> = {
+    Euler:  [239,68,68],
+    Heun:   [245,158,11],
+    RK4:    [59,130,246],
+    RK45:   [139,92,246],
+  };
+
+  solutions.forEach(sol => {
+    const c = methodDotColors[sol.method] || [100,100,100];
+    doc.setFillColor(c[0], c[1], c[2]);
+    doc.circle(19, y - 2, 2.5, 'F');
+    doc.setTextColor(30,30,30);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(sol.method, 24, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`— ${methodDesc[sol.method] || ''}`, 50, y);
+    y += 9;
+  });
+
+  // ── PAGE 2: Results Table ──────────────────────────
+  doc.addPage();
+
+  doc.setFillColor(37, 99, 235);
+  doc.rect(0, 0, pageW, 18, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Results Summary', 15, 13);
 
   // Table header
-  doc.setFillColor(37, 99, 235);
-  doc.rect(15, 96, 180, 8, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(9);
-  doc.text('Method', 18, 102);
-  doc.text('Steps', 60, 102);
-  doc.text('Final y', 90, 102);
-  doc.text('Error vs Exact', 130, 102);
-  doc.text('Accuracy', 170, 102);
+  y = 30;
+  const cols = [15, 45, 80, 120, 155, 180];
+  const headers = ['Method', 'Steps', 'Final y', 'Error vs Exact', 'Accuracy', ''];
 
-  // Table rows
-  let rowY = 110;
+  doc.setFillColor(37, 99, 235);
+  doc.rect(12, y - 6, pageW - 24, 10, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  headers.forEach((h, i) => doc.text(h, cols[i], y));
+  y += 8;
+
   solutions.forEach((sol, idx) => {
     const lastY = Array.isArray(sol.y_values[0])
       ? (sol.y_values[sol.y_values.length - 1] as number[])[0]
@@ -188,92 +243,127 @@ export default function App(): ReactNode {
     const absError = exactLastY !== null && typeof lastY === 'number'
       ? Math.abs(lastY - exactLastY) : null;
 
-    const accuracy = absError !== null
-      ? absError < 1e-8 ? 'Excellent'
-        : absError < 1e-5 ? 'Good'
-        : absError < 1e-3 ? 'Fair'
-        : 'Poor'
-      : 'N/A';
+    const accuracy = absError === null ? 'N/A'
+      : absError < 1e-8 ? 'Excellent'
+      : absError < 1e-5 ? 'Good'
+      : absError < 1e-3 ? 'Fair' : 'Poor';
+
+    const accColor: [number,number,number] = accuracy === 'Excellent' ? [16,185,129]
+      : accuracy === 'Good' ? [37,99,235]
+      : accuracy === 'Fair' ? [245,158,11]
+      : accuracy === 'Poor' ? [239,68,68]
+      : [100,100,100];
 
     if (idx % 2 === 0) {
       doc.setFillColor(245, 247, 255);
-      doc.rect(15, rowY - 5, 180, 8, 'F');
+      doc.rect(12, y - 5, pageW - 24, 9, 'F');
     }
 
-    doc.setTextColor(0, 0, 0);
+    const c = methodDotColors[sol.method] || [100,100,100];
+    doc.setFillColor(c[0], c[1], c[2]);
+    doc.circle(cols[0] + 2, y - 1.5, 2, 'F');
+
+    doc.setTextColor(30,30,30);
     doc.setFontSize(9);
-    doc.text(sol.method, 18, rowY);
-    doc.text(String(sol.steps_taken), 60, rowY);
-    doc.text(typeof lastY === 'number' ? lastY.toFixed(6) : 'N/A', 90, rowY);
-    doc.text(absError !== null ? absError.toExponential(3) : '—', 130, rowY);
+    doc.setFont('helvetica', 'bold');
+    doc.text(sol.method, cols[0] + 6, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text(String(sol.steps_taken), cols[1], y);
+    doc.text(typeof lastY === 'number' ? lastY.toFixed(6) : 'N/A', cols[2], y);
+    doc.text(absError !== null ? absError.toExponential(3) : '—', cols[3], y);
 
-    const accColor = accuracy === 'Excellent' ? [16, 185, 129]
-      : accuracy === 'Good' ? [37, 99, 235]
-      : accuracy === 'Fair' ? [245, 158, 11]
-      : [239, 68, 68];
     doc.setTextColor(accColor[0], accColor[1], accColor[2]);
-    doc.text(accuracy, 170, rowY);
-    doc.setTextColor(0, 0, 0);
-
-    rowY += 10;
+    doc.setFont('helvetica', 'bold');
+    doc.text(accuracy, cols[4], y);
+    y += 10;
   });
 
   // Exact solution row
   if (exactSolution) {
     const exactLast = exactSolution.y_values[exactSolution.y_values.length - 1];
     doc.setFillColor(220, 252, 231);
-    doc.rect(15, rowY - 5, 180, 8, 'F');
+    doc.rect(12, y - 5, pageW - 24, 9, 'F');
     doc.setTextColor(16, 185, 129);
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.text('Exact', 18, rowY);
-    doc.text('—', 60, rowY);
-    doc.text(exactLast.toFixed(6), 90, rowY);
-    doc.text('0.000e+0', 130, rowY);
-    doc.text('Reference', 170, rowY);
-    rowY += 10;
+    doc.text('Exact', cols[0], y);
+    doc.setFont('helvetica', 'normal');
+    doc.text('—', cols[1], y);
+    doc.text(exactLast.toFixed(6), cols[2], y);
+    doc.text('0.000e+0', cols[3], y);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Reference', cols[4], y);
+    y += 16;
   }
 
-  // Chart screenshot
+  // Explanation box
+  y += 4;
+  doc.setFillColor(239, 246, 255);
+  doc.roundedRect(12, y, pageW - 24, 40, 3, 3, 'F');
+  doc.setDrawColor(147, 197, 253);
+  doc.roundedRect(12, y, pageW - 24, 40, 3, 3, 'S');
+  doc.setTextColor(30, 64, 175);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('What do these results mean?', 18, y + 10);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(30, 30, 30);
+  const explain = [
+    'Excellent (< 1e-8): Near-perfect match with analytical solution. Use for precision work.',
+    'Good (< 1e-5): Suitable for most engineering applications.',
+    'Fair (< 1e-3): Acceptable for preliminary analysis; consider smaller step size.',
+    'Poor (>= 1e-3): Significant error. Reduce step size h or use higher-order method.',
+  ];
+  explain.forEach((line, i) => doc.text(line, 18, y + 20 + i * 7));
+
+  // ── PAGE 3: Chart ─────────────────────────────────
   const chartEl = document.querySelector('.recharts-wrapper');
   if (chartEl) {
     try {
       doc.addPage();
-
-      // Page header
       doc.setFillColor(37, 99, 235);
-      doc.rect(0, 0, 210, 20, 'F');
-      doc.setTextColor(255, 255, 255);
+      doc.rect(0, 0, pageW, 18, 'F');
+      doc.setTextColor(255,255,255);
       doc.setFontSize(14);
-      doc.text('Solution Chart', 15, 14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Solution Chart', 15, 13);
 
-      const canvas = await html2canvas(chartEl as HTMLElement, { scale: 1.5 });
+      const canvas = await html2canvas(chartEl as HTMLElement, { scale: 2 });
       const imgData = canvas.toDataURL('image/png');
-      doc.addImage(imgData, 'PNG', 10, 25, 190, 120);
+      const imgH = (canvas.height / canvas.width) * (pageW - 20);
+      doc.addImage(imgData, 'PNG', 10, 24, pageW - 20, imgH);
 
-      // Chart info below
+      // Caption
+      const captionY = 24 + imgH + 8;
       doc.setTextColor(80, 80, 80);
-      doc.setFontSize(9);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, 15, 155);
-      doc.text(`ODE: dy/dx = ${odeExpression}  |  x₀=${initialX}, y₀=${initialY}, h=${stepSize}`, 15, 163);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'italic');
+      doc.text(
+        `Figure: Solution of dy/dx = ${odeExpression} with x0=${initialX}, y0=${initialY}, h=${stepSize}`,
+        15, captionY
+      );
     } catch (e) {
       console.error('Chart capture failed', e);
     }
   }
 
-  // Footer on all pages
-  const pageCount = doc.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
+  // ── Footer on all pages ────────────────────────────
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     doc.setFillColor(30, 41, 59);
-    doc.rect(0, 285, 210, 12, 'F');
-    doc.setTextColor(180, 180, 180);
+    doc.rect(0, pageH - 12, pageW, 12, 'F');
+    doc.setTextColor(180,180,180);
     doc.setFontSize(8);
-    doc.text('ODE Solver • Built with FastAPI, React & Recharts', 15, 293);
-    doc.text(`Page ${i} / ${pageCount}`, 185, 293, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.text('ODE Solver  •  Built with FastAPI, React & Recharts', 15, pageH - 4);
+    doc.text(`Page ${i} / ${totalPages}`, pageW - 15, pageH - 4, { align: 'right' });
   }
 
-  doc.save(`ODE_Report_${odeExpression.replace(/[^a-z0-9]/gi, '_')}.pdf`);
+  doc.save(`ODE_Report_${odeExpression.replace(/[^a-z0-9]/gi,'_')}.pdf`);
 };
+
 
   const tabs: Tab[] = [
     { key: 'solution', label: 'Solution' },

@@ -126,9 +126,8 @@ def safe_exact_solution(exact_func, x_eval):
     except:
         return None
 
-
 @app.get("/")
-async def root():
+async def root(): 
     return {"message": "ODE Solver API", "version": "1.0.0"}
 
 
