@@ -9,6 +9,7 @@ import StabilityDiagram from './components/StabilityDiagram';
 import MethodTheoryModal from './components/MethodTheory';
 import ODESolverAPI from './api/client';
 import html2canvas from 'html2canvas';
+import HelpModal from './components/HelpModal';
 
 // Type definitions
 interface Solution {
@@ -55,6 +56,7 @@ export default function App(): ReactNode {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'solution' | 'error' | 'convergence' | 'stability'>('solution');
   const [theoryMethod, setTheoryMethod] = useState<string | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   const solveODE = async (): Promise<void> => {
     if (!odeExpression.trim()) { setError('Please enter an ODE expression'); return; }
@@ -365,12 +367,12 @@ export default function App(): ReactNode {
 };
 
 
-  const tabs: Tab[] = [
-    { key: 'solution', label: 'Solution' },
-    { key: 'error', label: 'Error Analysis' },
-    { key: 'convergence', label: 'Convergence' },
-    { key: 'stability', label: 'Stability' },
-  ];
+  const tabs = [
+  { key: 'solution', label: 'Solution' },
+  { key: 'error', label: 'Error Analysis' },
+  { key: 'convergence', label: 'Convergence' },
+  { key: 'stability', label: 'Stability' },
+] as const;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -379,12 +381,52 @@ export default function App(): ReactNode {
       {theoryMethod && (
         <MethodTheoryModal method={theoryMethod} onClose={() => setTheoryMethod(null)} />
       )}
+      {showHelp && (
+  <HelpModal
+    onClose={() => setShowHelp(false)}
+    onLoadExample={async (expr) => {
+      setOdeExpression(expr);
+      setActiveTab('solution');
+      setSolutions([]);
+      setExactSolution(null);
+      setShowHelp(false);
+      
+      // Auto solve
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await api.solveODE(
+          expr, initialX, initialY, xEnd, stepSize, selectedMethods
+        );
+        if (response.success) {
+          setSolutions(response.solutions);
+          if (response.exact_solution) setExactSolution(response.exact_solution);
+        } else {
+          setError(response.message || 'Failed to solve ODE');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to solve ODE.');
+      } finally {
+        setLoading(false);
+      }
+    }}
+  />
+)}
 
       {/* Header */}
       <header className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <h1 className="text-3xl font-bold">🔬 ODE Solver</h1>
-          <p className="text-blue-100 mt-1">Full-stack numerical ODE solver for engineering problems</p>
+        <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">🔬 ODE Solver</h1>
+            <p className="text-blue-100 mt-1">Full-stack numerical ODE solver for engineering problems</p>
+          </div>
+          <button
+            onClick={() => setShowHelp(true)}
+            className="flex items-center gap-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white font-semibold px-4 py-2 rounded-lg transition"
+          >
+            <span className="text-lg">?</span>
+            <span>Help</span>
+          </button>
         </div>
       </header>
 
@@ -483,22 +525,21 @@ export default function App(): ReactNode {
               </div>
             )}
 
-            {/* Tabs — Stability সবসময় দেখাবে, বাকিগুলো solution থাকলে */}
             <div className="space-y-4">
               <div className="flex gap-2 border-b border-gray-300 flex-wrap">
-                {tabs.map((tab: Tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={(): void => setActiveTab(tab.key)}
-                    className={`px-4 py-2 font-medium transition ${
-                      activeTab === tab.key
-                        ? 'text-blue-600 border-b-2 border-blue-600'
-                        : 'text-gray-600 hover:text-gray-800'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+               {tabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`px-4 py-2 font-medium transition ${
+                    activeTab === tab.key
+                      ? 'text-blue-600 border-b-2 border-blue-600'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
               </div>
 
               <div className="bg-white rounded-lg shadow-md">

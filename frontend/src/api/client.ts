@@ -122,6 +122,28 @@ class ODESolverAPI {
     });
     return res.data;
   }
+  async solveSecondOrder(
+  odeExpression: string,
+  initialX: number = 0,
+  initialY: number = 1,
+  initialV: number = 0,
+  xEnd: number = 10,
+  stepSize: number = 0.1,
+  methods: string[] = ['rk4'],
+  independentVar: string = 'x'
+): Promise<SolveResponse> {
+  const res = await this.client.post('/solve-second-order', {
+    ode_expression: odeExpression,
+    initial_x: initialX,
+    initial_y: initialY,
+    initial_v: initialV,
+    x_end: xEnd,
+    step_size: stepSize,
+    methods,
+    independent_var: independentVar,
+  });
+  return res.data;
+}
 }
 
 export default ODESolverAPI;
