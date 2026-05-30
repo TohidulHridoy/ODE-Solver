@@ -35,7 +35,7 @@ interface Parameter {
   step: number;
 }
 
-interface Tab {
+export interface Tab {
   key: 'solution' | 'error' | 'convergence' | 'stability';
   label: string;
 }
