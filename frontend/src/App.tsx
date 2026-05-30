@@ -426,7 +426,6 @@ export default function App(): ReactNode {
             onClick={() => setShowHelp(true)}
             className="flex items-center gap-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white font-semibold px-4 py-2 rounded-lg transition"
           >
-            <span className="text-lg">?</span>
             <span>Help</span>
           </button>
         </div>
