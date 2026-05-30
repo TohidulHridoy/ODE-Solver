@@ -382,36 +382,38 @@ export default function App(): ReactNode {
         <MethodTheoryModal method={theoryMethod} onClose={() => setTheoryMethod(null)} />
       )}
       {showHelp && (
-  <HelpModal
-    onClose={() => setShowHelp(false)}
-    onLoadExample={async (expr) => {
-      setOdeExpression(expr);
-      setActiveTab('solution');
-      setSolutions([]);
-      setExactSolution(null);
-      setShowHelp(false);
-      
-      // Auto solve
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await api.solveODE(
-          expr, initialX, initialY, xEnd, stepSize, selectedMethods
-        );
-        if (response.success) {
-          setSolutions(response.solutions);
-          if (response.exact_solution) setExactSolution(response.exact_solution);
-        } else {
-          setError(response.message || 'Failed to solve ODE');
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to solve ODE.');
-      } finally {
-        setLoading(false);
-      }
-    }}
-  />
-)}
+      <HelpModal
+        onClose={() => setShowHelp(false)}
+        onLoadExample={async (expr) => {
+          setOdeExpression(expr);
+          setActiveTab('solution');
+          setSolutions([]);
+          setExactSolution(null);
+          setShowHelp(false);
+
+          setLoading(true);
+          setError(null);
+          try {
+            const response = await api.solveODE(
+              expr, initialX, initialY, xEnd, stepSize,
+              ['euler', 'heun', 'rk4', 'rk45']
+            );
+            if (response.success) {
+              setSolutions(response.solutions);
+              setSelectedMethods(['euler', 'heun', 'rk4', 'rk45']);
+              if (response.exact_solution) setExactSolution(response.exact_solution);
+            } else {
+              setError(response.message || 'Failed to solve ODE');
+            }
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to solve ODE.');
+          } finally {
+            setLoading(false);
+          }
+        }}
+      />
+    )}
+  
 
       {/* Header */}
       <header className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg">
