@@ -6,7 +6,7 @@ import numpy as np
 from enum import Enum
 
 from solvers import (
-    EulerSolver, HeunSolver, RK4Solver, RK45Solver,
+    EulerSolver, HeunSolver, RK4Solver, RK45Solver, TaylorSolver,
     MultiMethodSolver, SystemODESolver, ODESolution
 )
 from parser import ODEParser
@@ -19,6 +19,7 @@ class MethodEnum(str, Enum):
     HEUN = "heun"
     RK4 = "rk4"
     RK45 = "rk45"
+    TAYLOR = "taylor"
 
 
 class SolveRequest(BaseModel):
@@ -126,8 +127,16 @@ def safe_exact_solution(exact_func, x_eval):
     except:
         return None
 
+
+def build_taylor_terms_if_needed(methods: List[str], ode_expression: str, var_names: dict):
+    """'taylor' method চাওয়া হলেই শুধু derivative terms বের করে, নাহলে None"""
+    if "taylor" in [m.lower() for m in methods]:
+        return ODEParser.get_taylor_terms(ode_expression, order=4, var_names=var_names)
+    return None
+
+
 @app.get("/")
-async def root(): 
+async def root():
     return {"message": "ODE Solver API", "version": "1.0.0"}
 
 
@@ -137,7 +146,13 @@ async def solve_ode(request: SolveRequest):
         var_names = {"independent": request.independent_var, "dependent": request.dependent_var}
         f, _ = ODEParser.parse_ode_expression(request.ode_expression, var_names)
         methods = [m.value for m in request.methods]
-        solutions_dict = MultiMethodSolver.solve_multiple(f, request.initial_x, request.initial_y, request.x_end, request.step_size, methods=methods, system=False)
+
+        taylor_terms = build_taylor_terms_if_needed(methods, request.ode_expression, var_names)
+
+        solutions_dict = MultiMethodSolver.solve_multiple(
+            f, request.initial_x, request.initial_y, request.x_end, request.step_size,
+            methods=methods, system=False, taylor_terms=taylor_terms
+        )
         solutions = [solution_to_dict(sol) for sol in solutions_dict.values()]
         exact_sol = None
         if request.find_exact:
@@ -170,6 +185,11 @@ async def convergence_analysis(request: ConvergenceAnalysisRequest):
         var_names = {"independent": request.independent_var, "dependent": request.dependent_var}
         f, _ = ODEParser.parse_ode_expression(request.ode_expression, var_names)
         method = request.method.value
+
+        taylor_terms = None
+        if method == "taylor":
+            taylor_terms = ODEParser.get_taylor_terms(request.ode_expression, order=4, var_names=var_names)
+
         global_errors = []
         local_errors_avg = []
         steps_counts = []
@@ -181,6 +201,8 @@ async def convergence_analysis(request: ConvergenceAnalysisRequest):
                 sol = HeunSolver.solve(f, request.initial_x, request.initial_y, request.x_end, h, system=False)
             elif method == "rk4":
                 sol = RK4Solver.solve(f, request.initial_x, request.initial_y, request.x_end, h, system=False)
+            elif method == "taylor":
+                sol = TaylorSolver.solve(taylor_terms, request.initial_x, request.initial_y, request.x_end, h)
             else:
                 sol = RK45Solver.solve(f, request.initial_x, request.initial_y, request.x_end, h, system=False)
             steps_counts.append(sol.steps_taken)
@@ -242,11 +264,21 @@ async def list_cases():
 async def solve_case_study(request: CaseStudyRequest):
     try:
         study = get_case_study(request.case_study_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    try:
         h = request.custom_step_size if request.custom_step_size else study.default_h
         var_names = {"independent": study.independent_var, "dependent": study.dependent_var}
         f, _ = ODEParser.parse_ode_expression(study.ode_expression, var_names)
         methods = [m.value for m in request.methods]
-        solutions_dict = MultiMethodSolver.solve_multiple(f, study.initial_x, study.initial_y, study.x_end, h, methods=methods, system=False)
+
+        taylor_terms = build_taylor_terms_if_needed(methods, study.ode_expression, var_names)
+
+        solutions_dict = MultiMethodSolver.solve_multiple(
+            f, study.initial_x, study.initial_y, study.x_end, h,
+            methods=methods, system=False, taylor_terms=taylor_terms
+        )
         solutions = [solution_to_dict(sol) for sol in solutions_dict.values()]
         exact_sol = None
         exact_func = ODEParser.get_exact_solution(study.ode_expression, study.initial_x, study.initial_y, var_names)
@@ -254,8 +286,6 @@ async def solve_case_study(request: CaseStudyRequest):
             x_eval = np.linspace(study.initial_x, study.x_end, 500)
             exact_sol = safe_exact_solution(exact_func, x_eval)
         return SolveResponse(success=True, solutions=solutions, exact_solution=exact_sol, x_range={"start": study.initial_x, "end": study.x_end}, message=f"Solved: {study.name}")
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
 

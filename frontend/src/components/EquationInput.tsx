@@ -21,16 +21,16 @@ const EquationInput: React.FC<EquationInputProps> = ({
   useEffect(() => {
     try {
       let latexStr = value
-  .replace(/exp\(([^)]+)\)/g, 'e^{$1}')
-  .replace(/\*\*(\d+)/g, '^{$1}')
-  .replace(/\*\*\(([^)]+)\)/g, '^{($1)}')
-  .replace(/\*/g, ' \\cdot ')
-  .replace(/sin\(/g, '\\sin(')
-  .replace(/cos\(/g, '\\cos(')
-  .replace(/tan\(/g, '\\tan(')
-  .replace(/log\(/g, '\\ln(')
-  .replace(/sqrt\(([^)]+)\)/g, '\\sqrt{$1}')
-  .replace(/abs\(([^)]+)\)/g, '|$1|');
+      .replace(/exp\(([^)]+)\)/g, 'e^{$1}')
+      .replace(/\*\*(\d+)/g, '^{$1}')
+      .replace(/\*\*\(([^)]+)\)/g, '^{($1)}')
+      .replace(/\*/g, ' \\cdot ')
+      .replace(/sin\(/g, '\\sin(')
+      .replace(/cos\(/g, '\\cos(')
+      .replace(/tan\(/g, '\\tan(')
+      .replace(/log\(/g, '\\ln(')
+      .replace(/sqrt\(([^)]+)\)/g, '\\sqrt{$1}')
+      .replace(/abs\(([^)]+)\)/g, '|$1|');
 
       if (latexStr) {
         const rendered = katex.renderToString(`\\frac{dy}{dx} = ${latexStr}`, {

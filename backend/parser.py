@@ -119,7 +119,6 @@ class ODEParser:
             }
             expr = sp.sympify(ode_str, locals=local_dict)
 
-            # Replace dep symbol with dep function for dsolve
             dep_sym = sp.Symbol(dep_name)
             expr_func = expr.subs(dep_sym, dep_func(ind_var))
 
@@ -143,6 +142,66 @@ class ODEParser:
 
         except Exception:
             return None
+
+    @staticmethod
+    def get_taylor_terms(
+        ode_str: str,
+        order: int = 4,
+        var_names: dict = None
+    ) -> List[Callable]:
+        """
+        Taylor Series Method-এর জন্য derivative terms বের করে।
+
+        T1 = f(x, y)
+        T_{k+1} = d/dx[T_k] + f(x,y) * d/dy[T_k]   (total derivative,
+                  chain rule ব্যবহার করে y'=f(x,y) constraint সহ)
+
+        Returns: [T1, T2, T3, T4] — প্রতিটি lambdified callable T_k(x, y)
+        """
+        if not ODEParser.validate_expression(ode_str):
+            raise ValueError("Invalid or unsafe expression")
+
+        if var_names is None:
+            var_names = {'independent': 'x', 'dependent': 'y'}
+
+        ind_name = var_names.get('independent', 'x')
+        dep_name = var_names.get('dependent', 'y')
+
+        ind_var = sp.Symbol(ind_name)
+        dep_var = sp.Symbol(dep_name)
+
+        local_dict = {
+            ind_name: ind_var,
+            dep_name: dep_var,
+            'sin': sp.sin, 'cos': sp.cos, 'tan': sp.tan,
+            'exp': sp.exp, 'log': sp.log, 'sqrt': sp.sqrt,
+            'abs': sp.Abs, 'pi': sp.pi, 'e': sp.E,
+            'sinh': sp.sinh, 'cosh': sp.cosh, 'tanh': sp.tanh,
+        }
+
+        try:
+            f_expr = sp.sympify(ode_str, locals=local_dict)
+        except Exception as e:
+            raise ValueError(f"Failed to parse expression: {str(e)}")
+
+        try:
+            terms_sym = [f_expr]
+            current = f_expr
+            for _ in range(order - 1):
+                current = sp.diff(current, ind_var) + f_expr * sp.diff(current, dep_var)
+                terms_sym.append(current)
+        except Exception as e:
+            raise ValueError(f"Could not compute derivatives for Taylor method: {str(e)}")
+
+        terms_fn = []
+        try:
+            for term in terms_sym:
+                fn = sp.lambdify((ind_var, dep_var), term, modules='numpy')
+                terms_fn.append(fn)
+        except Exception as e:
+            raise ValueError(f"Failed to build Taylor terms: {str(e)}")
+
+        return terms_fn
 
     @staticmethod
     def extract_variables(ode_str: str) -> List[str]:

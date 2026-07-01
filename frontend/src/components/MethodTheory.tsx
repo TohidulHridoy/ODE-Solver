@@ -45,6 +45,23 @@ const methodData: Record<string, MethodInfo> = {
     cons: ["Complex implementation", "Variable step count", "Higher overhead per step"],
     useCase: "Stiff ODEs, when accuracy and efficiency both matter",
   },
+  taylor: {
+  name: "Taylor Series Method (Order 4)",
+  formula: "T₁=f(x,y)\nT₂=∂f/∂x + f·∂f/∂y\nT₃=d/dx[T₂]+f·d/dy[T₂]\nT₄=d/dx[T₃]+f·d/dy[T₃]\ny_{n+1}=yₙ+hT₁+(h²/2!)T₂+(h³/3!)T₃+(h⁴/4!)T₄",
+  order: 4,
+  stability: "Identical stability region to RK4 — both methods match the same O(h⁴) Taylor expansion, so for the test equation y' = λy, they have exactly the same stability boundary.",
+  pros: [
+    "Same fourth-order accuracy as RK4",
+    "No additional function evaluations per step (derivatives are computed symbolically only once)",
+    "Directly illustrates the theoretical origin of the Runge-Kutta method"
+  ],
+  cons: [
+    "Requires symbolic differentiation using SymPy",
+    "Derivative expressions can become very large for complex nonlinear functions",
+    "Not practical to perform manually beyond second or third order"
+  ],
+  useCase: "Educational comparison with RK4; suitable for simple, differentiable functions f(x,y)"
+},
 };
 
 interface Props {

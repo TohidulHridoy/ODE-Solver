@@ -30,11 +30,14 @@ const categoryColors: Record<string, string> = {
   'Environmental Engineering': 'bg-teal-50 border-teal-300 text-teal-800',
 };
 
+
+
 const methodColors: Record<string, string> = {
   euler: 'bg-red-50 border-red-300 text-red-700',
   heun: 'bg-yellow-50 border-yellow-300 text-yellow-700',
   rk4: 'bg-blue-50 border-blue-300 text-blue-700',
   rk45: 'bg-purple-50 border-purple-300 text-purple-700',
+  taylor: 'bg-emerald-50 border-emerald-300 text-emerald-700',
 };
 
 const methodLabels: Record<string, string> = {
@@ -42,6 +45,7 @@ const methodLabels: Record<string, string> = {
   heun: 'Heun',
   rk4: 'RK4',
   rk45: 'RK45',
+  taylor: 'Taylor',
 };
 
 const PresetPanel: React.FC<PresetPanelProps> = ({ onLoadPreset, loading = false }) => {
@@ -181,7 +185,7 @@ const PresetPanel: React.FC<PresetPanelProps> = ({ onLoadPreset, loading = false
                 Comparison Methods
               </label>
               <div className="grid grid-cols-2 gap-2">
-                {['euler', 'heun', 'rk4', 'rk45'].map(method => (
+                {['euler', 'heun', 'rk4', 'rk45', 'taylor'].map(method => (
                   <button
                     key={method}
                     onClick={() => toggleMethod(method)}

@@ -66,6 +66,17 @@ const methods = [
     activeBg: 'bg-purple-500',
     description: 'Adaptive',
   },
+  {
+  key: 'taylor',
+  label: 'Taylor',
+  order: 4,
+  color: '#10b981',
+  bg: 'bg-emerald-50',
+  border: 'border-emerald-300',
+  text: 'text-emerald-700',
+  activeBg: 'bg-emerald-500',
+  description: 'Symbolic, order 4',
+},
 ];
 
 const ConvergencePanel: React.FC<ConvergencePanelProps> = ({

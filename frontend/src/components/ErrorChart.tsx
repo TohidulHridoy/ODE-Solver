@@ -20,6 +20,7 @@ const methodColors: Record<string, string> = {
   Heun: '#f59e0b',
   RK4: '#3b82f6',
   RK45: '#8b5cf6',
+  Taylor: '#10b981',
 };
 
 const ErrorChart: React.FC<ErrorChartProps> = ({

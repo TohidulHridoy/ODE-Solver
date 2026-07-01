@@ -213,19 +213,20 @@ export default function App(): ReactNode {
   doc.text('Methods Used', 18, y + 7);
   y += 14;
 
-  const methodDotColors: Record<string, [number, number, number]> = {
-    Euler: [239, 68, 68],
-    Heun:  [245, 158, 11],
-    RK4:   [59, 130, 246],
-    RK45:  [139, 92, 246],
+ const methodDotColors: Record<string, [number, number, number]> = {
+    Euler:  [239, 68, 68],
+    Heun:   [245, 158, 11],
+    RK4:    [59, 130, 246],
+    RK45:   [139, 92, 246],
+    Taylor: [16, 185, 129],
   };
   const methodDesc: Record<string, string> = {
-    Euler: 'Order 1 — Simple first-order method',
-    Heun:  'Order 2 — Predictor-corrector',
-    RK4:   'Order 4 — Classical industry standard',
-    RK45:  'Order 4 — Adaptive step control',
+    Euler:  'Order 1 — Simple first-order method',
+    Heun:   'Order 2 — Predictor-corrector',
+    RK4:    'Order 4 — Classical industry standard',
+    RK45:   'Order 4 — Adaptive step control',
+    Taylor: 'Order 4 — Symbolic Taylor expansion',
   };
-
   solutions.forEach(sol => {
     const c = methodDotColors[sol.method] || [100, 100, 100];
     doc.setFillColor(c[0], c[1], c[2]);
@@ -510,11 +511,11 @@ export default function App(): ReactNode {
           try {
             const response = await api.solveODE(
               expr, initialX, initialY, xEnd, stepSize,
-              ['euler', 'heun', 'rk4', 'rk45']
+              ['euler', 'heun', 'rk4', 'rk45', 'taylor']
             );
             if (response.success) {
               setSolutions(response.solutions);
-              setSelectedMethods(['euler', 'heun', 'rk4', 'rk45']);
+              setSelectedMethods(['euler', 'heun', 'rk4', 'rk45', 'taylor']);
               if (response.exact_solution) setExactSolution(response.exact_solution);
             } else {
               setError(response.message || 'Failed to solve ODE');
@@ -567,7 +568,7 @@ export default function App(): ReactNode {
               />
               {/* Theory buttons */}
               <div className="mt-3 flex flex-wrap gap-2">
-                {(['euler', 'heun', 'rk4', 'rk45'] as const).map((m: string) => (
+                {(['euler', 'heun', 'rk4', 'rk45', 'taylor'] as const).map((m: string) => (
                   <button
                     key={m}
                     onClick={(): void => setTheoryMethod(m)}

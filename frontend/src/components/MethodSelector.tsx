@@ -26,6 +26,11 @@ const methodInfo = {
     description: 'Adaptive step control, best for stiff problems',
     order: 4,
   },
+  taylor: {
+    name: 'Taylor Series (Order 4)',
+    description: 'Symbolic derivatives, same order as RK4, no extra function calls',
+    order: 4,
+  },
 };
 
 const MethodSelector: React.FC<MethodSelectorProps> = ({

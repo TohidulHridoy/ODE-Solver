@@ -34,6 +34,17 @@ const stabilityData = [
     maxStable: 3.5,
     region: [[-3.5,0],[-2.5,2.5],[0,3.5],[0,-3.5],[-2.5,-2.5],[-3.5,0]],
   },
+  {
+  method: 'Taylor',
+  order: 4,
+  color: '#10b981',
+  interval: '[-2.79, 0]',
+  evals: 0,
+  best: 'Educational comparison with RK4',
+  description: 'Has an identical stability region to RK4 because both methods match the same O(h⁴) Taylor expansion. The difference is that Taylor uses symbolic derivatives instead of additional function evaluations.',
+  maxStable: 2.79,
+  region: [[-2.79,0],[-2,2],[0,2.83],[0,-2.83],[-2,-2],[-2.79,0]],
+},
 ];
 
 const StabilityDiagram: React.FC<StabilityDiagramProps> = ({
